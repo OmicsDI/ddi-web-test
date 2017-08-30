@@ -51,7 +51,7 @@ class DatabaseTest {
                 assert (abs((domains - avg) / avg) < 0.1);
             }
             catch(Exception ex){
-                assertEquals(1,0,"EXCEPTION:"+ex.getMessage());
+                assertEquals(1,0,"EXCEPTION in"+ database.database + ":"+ex.getMessage());
             }
         }
     }
