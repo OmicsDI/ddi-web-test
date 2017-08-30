@@ -1,12 +1,9 @@
 import com.mongodb.*;
 import model.*;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
-import javax.xml.crypto.Data;
+import java.io.InputStream;
 import java.util.*;
 
 /**
@@ -38,6 +35,9 @@ public class TestRunner {
     public static void loadSearchMetadata(){
         RestTemplate template = new RestTemplate();
         RestTemplate restTemplate = new RestTemplate();
+
+        restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
+
         String url = "http://www.ebi.ac.uk/ebisearch/ws/rest/omics?query=*:*&start=0&size=10&format=JSON&facetcount=20";
         SearchResponse response = restTemplate.getForObject(url, SearchResponse.class);
         for(Facet facet : response.facets){
@@ -59,6 +59,8 @@ public class TestRunner {
     public static void loadSearchResults(){
         RestTemplate template = new RestTemplate();
         RestTemplate restTemplate = new RestTemplate();
+        restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
+
         int pageSize = 100;
         for(int i = 0; i!= totalCount/pageSize; i++){
             String url = getUrl(pageSize,i*pageSize);
@@ -83,11 +85,21 @@ public class TestRunner {
         }
     }
 
-    private MongoClient getMongoClient(){
-        final String mongoServer = env.getRequiredProperty("ddi.mongo.machine.one");
-        final Integer mongoPort = env.getRequiredProperty("ddi.mongo.port");
-        final String mongoUser = env.getRequiredProperty("ddi.mongo.user");
-        final String mongoPassword = env.getRequiredProperty("ddi.mongo.password");
+    private static MongoClient getMongoClient(){
+        Properties properties = new Properties();
+
+        try (InputStream is = TestRunner.class.getClassLoader().getResourceAsStream("application.properties")) {
+            properties.load(is);
+        }catch(Exception ex){
+            System.out.print("...EXCEPTION...:"+ex.getMessage());
+        }
+
+        final String mongoServer = properties.getProperty("ddi.mongo.machine.one");
+        System.out.print("mongo server" + mongoServer);
+
+        final Integer mongoPort = Integer.parseInt(properties.getProperty("ddi.mongo.port"));
+        final String mongoUser = properties.getProperty("ddi.mongo.user");
+        final String mongoPassword = properties.getProperty("ddi.mongo.password");
 
         ServerAddress serverAddress = new ServerAddress(mongoServer , mongoPort );
 
@@ -159,7 +171,6 @@ public class TestRunner {
     }
 
     public static void loadDatabases(){
-        final String mongoDb = env.getRequiredProperty("ddi.mongo.db");
 
         MongoClient mongoClient = getMongoClient();
 
@@ -178,7 +189,7 @@ public class TestRunner {
         mongoClient.close();
 
         for (Database database: databases) {
-            System.out.print("database:"+database.database+"\n");
+            System.out.print("database:"+database.database+" repository:"+database.repository+"\n");
         }
     }
 
